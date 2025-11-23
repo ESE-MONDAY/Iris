@@ -1,0 +1,23 @@
+{
+  "name": "iris-sdk",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "Ese Monday",
+  "type": "commonjs",
+  "main": "client.ts",
+  "scripts": {
+    "build": "tsup src/client.ts --format cjs,esm --dts --clean",
+    "test": "ts-node test-iris.ts"
+  },
+  "dependencies": {
+    "@0glabs/0g-ts-sdk": "^0.3.3",
+    "ethers": "^6.13.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}
