@@ -2,6 +2,7 @@
 import { memo, useState } from 'react';
 import Link from 'next/link';
 import { 
+  Loader,
   Cpu, 
   Coins,
   Key,
@@ -481,15 +482,22 @@ const AgentDetailsModal = ({
 }) => {
   const [reviewScore, setReviewScore] = useState<string>('');
   const [reviewComment, setReviewComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!agent) return null;
 
   const handleSubmit = () => {
     const score = parseInt(reviewScore);
     if (score > 0 && score <= 10 && reviewComment) {
-      onSubmitReview(score, reviewComment);
-      setReviewScore('');
-      setReviewComment('');
+      setIsSubmitting(true);
+      
+      // Simulate network request
+      setTimeout(() => {
+        onSubmitReview(score, reviewComment);
+        setReviewScore('');
+        setReviewComment('');
+        setIsSubmitting(false);
+      }, 1500);
     }
   };
 
@@ -515,7 +523,7 @@ const AgentDetailsModal = ({
                  </div>
                  <div className="flex items-center gap-4 text-sm font-mono text-gray-400">
                     <span className="flex items-center gap-1.5 text-cyan-500">
-                       {agent.mode === 'onchain' ? <Link href="/" className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
+                       {agent.mode === 'onchain' ? <Link href='/' className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
                        {agent.mode === 'onchain' ? 'ON-CHAIN ENTITY' : 'WEB2 SERVICE'}
                     </span>
                     <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
@@ -592,7 +600,7 @@ const AgentDetailsModal = ({
                       </h3>
                       <p className="text-xs text-gray-400 font-mono mb-4">Initiate a neural handshake to utilize this agent's services. Payment is processed in IRIS tokens.</p>
                       <NeonButton onClick={onHire} className="w-full h-12 text-lg">
-                         HIRE AGENT <span className="ml-2 text-sm opacity-70">[{agent.price || 'FREE'}]</span>
+                         HIRE AGENT <span className="ml-2 text-sm opacity-70">[{agent.price || 'FREE'} IRIS]</span>
                       </NeonButton>
                    </>
                  ) : (
@@ -609,18 +617,31 @@ const AgentDetailsModal = ({
                             value={reviewScore}
                             onChange={(e) => setReviewScore(e.target.value)}
                             placeholder="Score (1-10)" 
-                            className="bg-black/50 border border-gray-700 text-white p-2 rounded w-24 text-sm font-mono focus:border-cyan-500 outline-none"
+                            disabled={isSubmitting}
+                            className="bg-black/50 border border-gray-700 text-white p-2 rounded w-24 text-sm font-mono focus:border-cyan-500 outline-none disabled:opacity-50"
                           />
                           <input 
                             type="text" 
                             value={reviewComment}
                             onChange={(e) => setReviewComment(e.target.value)}
                             placeholder="Comment on performance..." 
-                            className="bg-black/50 border border-gray-700 text-white p-2 rounded flex-1 text-sm font-mono focus:border-cyan-500 outline-none"
+                            disabled={isSubmitting}
+                            className="bg-black/50 border border-gray-700 text-white p-2 rounded flex-1 text-sm font-mono focus:border-cyan-500 outline-none disabled:opacity-50"
                           />
                         </div>
-                        <NeonButton onClick={handleSubmit} variant="secondary" className="w-full" disabled={!reviewScore || !reviewComment}>
-                           SUBMIT FEEDBACK
+                        <NeonButton 
+                           onClick={handleSubmit} 
+                           variant="secondary" 
+                           className="w-full" 
+                           disabled={!reviewScore || !reviewComment || isSubmitting}
+                        >
+                           {isSubmitting ? (
+                              <>
+                                 <Loader className="w-4 h-4 animate-spin" /> PROCESSING TRANSACTION...
+                              </>
+                           ) : (
+                              'SUBMIT FEEDBACK'
+                           )}
                         </NeonButton>
                       </div>
                    </>
@@ -655,6 +676,7 @@ const AgentDetailsModal = ({
     </div>
   );
 };
+
 const StatWidget: React.FC<{ label: string; value: string; sub?: string; icon: React.ElementType; color: string }> = ({ label, value, sub, icon: Icon, color }) => (
   <div className="relative group">
     <div className={`absolute inset-0 bg-gradient-to-r ${color} opacity-5 group-hover:opacity-20 transition-opacity duration-500 rounded-lg blur`}></div>
@@ -727,7 +749,7 @@ const Dashboard = ({ onLogout }: { onLogout: () => void }) => {
       alert(`Agent ${selectedAgent.name} hired for ${selectedAgent.price || '0'} IRIS successfully! Neural handshake initiated.`);
     }
   };
-    const handleAddReview = (score: number, comment: string) => {
+  const handleAddReview = (score: number, comment: string) => {
     if (selectedAgent) {
       const newReview: Review = {
         user: 'You (0x8a...9f2)',
@@ -738,14 +760,24 @@ const Dashboard = ({ onLogout }: { onLogout: () => void }) => {
       
       const updatedAgents = agents.map(a => {
         if (a.id === selectedAgent.id) {
-          return { ...a, reviews: [newReview, ...a.reviews] };
+          // Calculate new score: Weighted average (90% old, 10% new) for simulation impact
+          // Score is 0-100, review is 1-10. Map review to 10-100.
+          const normalizedReviewScore = score * 10;
+          const newScore = ((a.score * 9) + normalizedReviewScore) / 10;
+          
+          return { 
+            ...a, 
+            score: parseFloat(newScore.toFixed(1)),
+            reviews: [newReview, ...a.reviews] 
+          };
         }
         return a;
       });
       
       setAgents(updatedAgents);
       // Update selected agent reference as well to show instant feedback
-      setSelectedAgent({ ...selectedAgent, reviews: [newReview, ...selectedAgent.reviews] });
+      const updatedSelected = updatedAgents.find(a => a.id === selectedAgent.id);
+      if (updatedSelected) setSelectedAgent(updatedSelected);
     }
   };
 
